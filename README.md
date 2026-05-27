@@ -90,6 +90,8 @@ void setup_wifi() {
 
   Serial.println("");
   Serial.println("WiFi conectado!");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
 }
 
 // =========================
@@ -102,14 +104,16 @@ void reconnect() {
 
     Serial.print("Conectando MQTT... ");
 
-    if (client.connect("ESP32Client")) {
+    // CLIENT ID ÚNICO
+    if (client.connect("EduardoESP32MQTT")) {
 
-      Serial.println("conectado!");
+      Serial.println("MQTT conectado!");
 
     } else {
 
-      Serial.print("Falhou: ");
+      Serial.print("Falhou, rc=");
       Serial.print(client.state());
+      Serial.println(" tentando novamente em 2 segundos");
 
       delay(2000);
     }
@@ -142,16 +146,25 @@ void setup() {
 
 void loop() {
 
+  // Verifica MQTT
   if (!client.connected()) {
     reconnect();
   }
 
   client.loop();
 
+  // =========================
+  // LEITURA DOS SENSORES
+  // =========================
+
   float temperatura = dht.readTemperature();
   float umidade = dht.readHumidity();
 
   int gas = analogRead(MQ135_PIN);
+
+  // =========================
+  // VALIDAÇÃO
+  // =========================
 
   if (isnan(temperatura) || isnan(umidade)) {
 
@@ -159,6 +172,10 @@ void loop() {
     delay(2000);
     return;
   }
+
+  // =========================
+  // SERIAL
+  // =========================
 
   Serial.println("------ DADOS ------");
 
@@ -176,19 +193,26 @@ void loop() {
   // =========================
 
   String payload = "{";
+
   payload += "\"temperatura\":";
   payload += temperatura;
+
   payload += ",";
+
   payload += "\"umidade\":";
   payload += umidade;
+
   payload += ",";
+
   payload += "\"gas\":";
   payload += gas;
+
   payload += "}";
 
+  // PUBLICA MQTT
   client.publish("iot/sensores/dados", payload.c_str(), true);
 
-  Serial.println("Dados enviados MQTT!");
+  Serial.println("MQTT ENVIADO:");
   Serial.println(payload);
 
   // =========================
@@ -201,6 +225,7 @@ void loop() {
 
     digitalWrite(LED_PIN, HIGH);
 
+    // BUZZER
     tone(BUZZER_PIN, 1000);
 
   } else {
@@ -214,7 +239,6 @@ void loop() {
 
   delay(2000);
 }
-
 
 ## Como executar
 
